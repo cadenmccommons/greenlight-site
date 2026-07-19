@@ -5,36 +5,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Greenlight — films that compile</title>
 <meta name="description" content="Greenlight is a video production engine that treats film as source code: scenes are YAML programs, rendering is a build, and every shot ships with proof it is correct.">
+<script>document.documentElement.classList.add('js')</script>
 <style>
 :root{
-  --set:#151312;        /* tungsten-lit stage black */
+  --set:#151312;
   --set-2:#1d1a18;
-  --set-3:#211e1b;
-  --bone:#e8e2d9;       /* screen-white with warmth */
+  --bone:#e8e2d9;
   --dim:#9a938a;
   --pass:#37d67a;       /* appears ONLY on verified things */
   --fail:#e5484d;       /* appears ONLY on caught defects */
   --line:#2c2825;
   --mono:ui-monospace,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace;
   --disp:-apple-system,'SF Pro Display',system-ui,'Segoe UI',Roboto,sans-serif;
-  --ease:cubic-bezier(.16,1,.3,1);        /* critically damped: settle, no overshoot */
-  --ease-spring:cubic-bezier(.34,1.56,.64,1); /* slight overshoot: reserved for a landed/committed moment */
+  --ease:cubic-bezier(.16,1,.3,1);
 }
 *{margin:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{background:var(--set);color:var(--bone);font:16px/1.65 system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
 a{color:inherit}
 .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+img,video{max-width:100%;display:block}
 
-/* reveal-on-scroll: opacity + transform, spring-flavored easing, always interrupt-safe */
-.reveal{opacity:0;transform:translateY(26px);transition:opacity .9s var(--ease),transform .9s var(--ease);transition-delay:var(--d,0ms);will-change:transform,opacity}
+/* generic scroll reveal (non-hero content) — hidden-until-revealed ONLY once JS proves it can reveal them */
+html.js .reveal{opacity:0;transform:translateY(24px);transition:opacity .9s var(--ease),transform .9s var(--ease);transition-delay:var(--d,0ms)}
 .reveal.in{opacity:1;transform:none}
-@media (prefers-reduced-motion:reduce){
-  .reveal{transform:none;transition:opacity .5s ease;transition-delay:0ms}
-}
+@media (prefers-reduced-motion:reduce){html.js .reveal{transform:none;transition:opacity .5s ease;transition-delay:0ms}}
 
 /* nav */
-header{position:sticky;top:0;z-index:50;border-bottom:1px solid transparent;transition:background .4s ease,border-color .4s ease,backdrop-filter .4s ease}
+header{position:sticky;top:0;z-index:60;border-bottom:1px solid transparent;transition:background .4s ease,border-color .4s ease,backdrop-filter .4s ease}
 header.scrolled{background:color-mix(in srgb,var(--set) 74%,transparent);backdrop-filter:blur(18px) saturate(160%);border-color:var(--line)}
 nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0}
 .mark{font:600 15px var(--mono);letter-spacing:.02em}
@@ -42,57 +40,56 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 nav a.gh{font:400 13px var(--mono);color:var(--dim);text-decoration:none;border:1px solid var(--line);padding:7px 14px;border-radius:6px;transition:color .2s ease,border-color .2s ease}
 nav a.gh:hover,nav a.gh:focus-visible{color:var(--bone);border-color:var(--dim)}
 
-/* hero */
-.hero{position:relative;padding:104px 0 40px;overflow:clip}
-.hero::before{content:"";position:absolute;top:-140px;right:-140px;width:640px;height:640px;
-  background:radial-gradient(circle at 32% 32%,color-mix(in srgb,var(--pass) 20%,transparent),transparent 68%);
-  filter:blur(10px);pointer-events:none;z-index:0}
-.hero .eyebrow{position:relative;z-index:1}
-h1{position:relative;z-index:1;font:700 clamp(48px,8.6vw,116px)/.98 var(--disp);letter-spacing:-.035em;max-width:17ch}
-h1 .lit{color:var(--pass)}
-.hero-body{position:relative;z-index:1;display:grid;grid-template-columns:1.15fr .85fr;gap:56px;align-items:start;margin-top:44px}
-.hero p.lede{font-size:18.5px;line-height:1.6;color:var(--dim);max-width:44ch}
-.hero p.lede strong{color:var(--bone);font-weight:600}
-
-/* glass moment — the one translucent panel on the page */
-.glass{
-  background:color-mix(in srgb,var(--set-2) 58%,transparent);
-  backdrop-filter:blur(26px) saturate(170%);
-  -webkit-backdrop-filter:blur(26px) saturate(170%);
-  border:1px solid rgba(255,255,255,.07);
-  border-top-color:rgba(255,255,255,.15);
-  box-shadow:0 40px 100px -30px rgba(0,0,0,.65);
-  border-radius:14px;overflow:hidden;
-  transform:scale(.97);opacity:0;
-  transition:opacity 1s var(--ease),transform 1s var(--ease),filter 1s var(--ease);
-}
-.glass.in{opacity:1;transform:scale(1)}
-@media (prefers-reduced-motion:reduce){.glass{transform:none;transition:opacity .5s ease}}
-.build{font:400 12.5px/1.7 var(--mono)}
-.build header{padding:10px 16px;border-bottom:1px solid var(--line);color:var(--dim);font-size:11px;display:flex;justify-content:space-between}
-.build pre{padding:16px}
-.build .k{color:#8fb4d9}.build .v{color:var(--bone)}.build .c{color:#635c54}
-.build .out{border-top:1px dashed var(--line);padding:13px 16px;color:var(--dim)}
-.build .out .ok{color:var(--pass);font-weight:600}
-
-/* signature: verification strip */
-.strip-zone{padding:44px 0 8px}
-.strip-label{font:400 11px var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.14em;margin-bottom:16px}
-.strip{display:flex;gap:10px;overflow-x:auto;padding:6px 2px 20px;align-items:stretch}
-.frame{flex:0 0 152px;border:1px solid var(--line);border-radius:9px;background:linear-gradient(160deg,#26221f 0%,#1a1715 70%);padding:11px;font:400 11px/1.5 var(--mono)}
-.frame .shot{color:var(--dim)}
-.frame .assert{color:#8f887f;margin:6px 0;min-height:3.1em}
-.frame .verdict{display:inline-block;font-weight:600;color:var(--pass)}
-.frame.bad{border-color:color-mix(in srgb,var(--fail) 45%,var(--line))}
-.frame.bad .verdict{color:var(--fail)}
-.frame .hint{color:#b8896a;display:block;margin-top:4px}
+/* ===== hero: render-first ===== */
+.hero{position:relative;height:100svh;min-height:600px;overflow:hidden}
+.hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero .scrim{position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(21,19,18,.6) 0%,rgba(21,19,18,.1) 22%,rgba(21,19,18,.12) 58%,rgba(21,19,18,.96) 96%)}
+.hero .content{position:absolute;left:0;right:0;bottom:0;padding:0 24px 64px;z-index:2}
+.hero .eyebrow{font:400 11px var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.16em;margin-bottom:14px}
+.hero h1{font:700 clamp(44px,8vw,104px)/.98 var(--disp);letter-spacing:-.03em;max-width:15ch}
+.hero h1 .ink{
+  background:linear-gradient(100deg,var(--pass) 0%,#8fe6bd 35%,#a9d6cf 60%,#8fb4d9 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .sub{margin-top:18px;font-size:17px;color:var(--dim);max-width:46ch}
+.hero .cue{position:absolute;left:24px;bottom:22px;z-index:2;display:flex;align-items:center;gap:8px;font:400 11px var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.12em}
+.hero .cue .chev{display:inline-block}
 @media (prefers-reduced-motion:no-preference){
-  .frame.in .verdict{animation:verdictPop .5s var(--ease-spring) .3s both}
+  .hero .cue .chev{animation:cueBob 2.4s ease-in-out infinite}
 }
-@keyframes verdictPop{0%{transform:scale(.82);opacity:0}100%{transform:scale(1);opacity:1}}
-.repair-link{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0 6px;color:var(--dim);font:600 10px var(--mono);text-transform:uppercase;letter-spacing:.08em}
-.repair-link .arrow{font-size:17px;line-height:1;color:var(--fail);transition:color .6s ease .35s}
-.repair-link.in .arrow{color:var(--pass)}
+@keyframes cueBob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+html.js .hero-load{opacity:0;transform:translateY(16px)}
+
+/* thesis band */
+.thesis{padding:96px 0 72px}
+.thesis p{font:400 clamp(19px,2.4vw,26px)/1.55 var(--disp);color:var(--bone);max-width:38ch;letter-spacing:-.005em}
+.thesis p .dim{color:var(--dim)}
+.thesis p strong{font-weight:600;color:var(--pass)}
+
+/* ===== scrub centerpiece ===== */
+.scrub-stage{position:relative;border-top:1px solid var(--line)}
+.scrub-inner{position:relative;height:100svh;min-height:520px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#000}
+.scrub-media{position:relative;width:100%;height:100%}
+.scrub-media img,.scrub-media canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.scrub-stage .vig{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.5) 0%,transparent 20%,transparent 70%,rgba(0,0,0,.75) 100%);pointer-events:none;z-index:1}
+.scrub-static{padding:0}
+.scrub-static .beats{position:relative;z-index:2}
+.scrub-static .beats{padding:0 24px;margin-top:-120px}
+.scrub-static .beat{background:var(--set-2);border:1px solid var(--line);border-radius:12px;padding:20px 22px;max-width:520px;margin:0 auto 14px}
+.beat .n{font:600 11px var(--mono);color:var(--pass);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;display:block}
+.beat h3{font:600 19px var(--disp);margin-bottom:6px;letter-spacing:-.01em}
+.beat p{font-size:14.5px;color:var(--dim)}
+.beat .snip{display:block;margin-top:8px;font:400 11.5px var(--mono);color:#8fb4d9}
+
+.scrub-animated .beat{position:absolute;left:50%;bottom:14%;transform:translate(-50%,20px);width:min(88vw,460px);
+  background:color-mix(in srgb,var(--set-2) 62%,transparent);backdrop-filter:blur(20px) saturate(170%);-webkit-backdrop-filter:blur(20px) saturate(170%);
+  border:1px solid rgba(255,255,255,.08);border-top-color:rgba(255,255,255,.16);border-radius:14px;padding:20px 22px;
+  box-shadow:0 30px 70px -24px rgba(0,0,0,.6);opacity:0;z-index:2}
+.verify-chip{position:absolute;top:8%;right:6%;z-index:3;opacity:0;transform:scale(.85);
+  background:color-mix(in srgb,var(--set-2) 55%,transparent);backdrop-filter:blur(18px) saturate(170%);-webkit-backdrop-filter:blur(18px) saturate(170%);
+  border:1px solid color-mix(in srgb,var(--pass) 45%,var(--line));border-radius:10px;padding:12px 16px;
+  font:400 12px/1.6 var(--mono);color:var(--dim)}
+.verify-chip b{color:var(--pass);font-weight:600;display:block;margin-bottom:2px}
 
 /* sections */
 section{padding:88px 0}
@@ -103,31 +100,31 @@ h2{font:700 clamp(28px,3.8vw,40px)/1.1 var(--disp);letter-spacing:-.02em;max-wid
 .cols h3{font:600 17px var(--disp);margin-bottom:9px;letter-spacing:-.005em}
 .cols p{font-size:14.5px;color:var(--dim)}
 .cols .mono{font-family:var(--mono);font-size:12.5px;color:var(--bone)}
-
-/* pipeline */
 .pipe{display:flex;flex-wrap:wrap;gap:8px;margin-top:32px;font:600 13px var(--mono)}
 .pipe span{border:1px solid var(--line);border-radius:6px;padding:8px 14px;background:var(--set-2)}
 .pipe .arrow{border:0;background:none;color:var(--dim);padding:8px 2px}
 .pipe .lit{border-color:color-mix(in srgb,var(--pass) 50%,var(--line));color:var(--pass)}
 
+/* soldier panel */
+.panel-section{padding-top:96px}
+.panel{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--set-2);aspect-ratio:16/9}
+.panel video,.panel img{width:100%;height:100%;object-fit:cover}
+.panel .cap{position:absolute;left:16px;bottom:14px;font:600 11px var(--mono);color:var(--bone);
+  background:rgba(21,19,18,.55);backdrop-filter:blur(10px);padding:6px 11px;border-radius:6px;letter-spacing:.02em}
+
 /* render slots */
 .renders{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:44px}
 .slot{position:relative;aspect-ratio:16/9;border-radius:12px;border:1px solid var(--line);
-  background:
-    repeating-linear-gradient(115deg,rgba(255,255,255,.025) 0 2px,transparent 2px 26px),
-    radial-gradient(circle at 30% 20%,#2a2622,transparent 60%),
-    linear-gradient(155deg,#221f1c,#161311 75%);
+  background:repeating-linear-gradient(115deg,rgba(255,255,255,.025) 0 2px,transparent 2px 26px),
+    radial-gradient(circle at 30% 20%,#2a2622,transparent 60%),linear-gradient(155deg,#221f1c,#161311 75%);
   overflow:hidden;display:flex;align-items:flex-end;padding:14px}
 .slot::after{content:"";position:absolute;inset:0;border:1px solid rgba(255,255,255,.05);border-radius:12px;pointer-events:none}
-.slot .tag{font:600 11px var(--mono);color:var(--dim);display:flex;align-items:center;gap:7px;letter-spacing:.02em}
-.slot .dot{width:6px;height:6px;border-radius:50%;background:var(--dim);flex:0 0 auto}
-@media (prefers-reduced-motion:no-preference){
-  .slot .dot{animation:pendingPulse 3.6s ease-in-out infinite}
-}
+.slot .tag{font:600 11px var(--mono);color:var(--dim);display:flex;align-items:center;gap:7px}
+.slot .dot{width:6px;height:6px;border-radius:50%;background:var(--dim)}
+@media (prefers-reduced-motion:no-preference){.slot .dot{animation:pendingPulse 3.6s ease-in-out infinite}}
 @keyframes pendingPulse{0%,100%{opacity:.45}50%{opacity:1}}
 .slot .corner{position:absolute;top:12px;left:14px;font:400 10px var(--mono);color:#635c54;letter-spacing:.06em}
 
-/* status + footer */
 .status{font:400 13px var(--mono);color:var(--dim);margin-top:30px;line-height:2.1}
 .status b{color:var(--bone);font-weight:600}
 footer{border-top:1px solid var(--line);padding:36px 0 48px;font:400 13px var(--mono);color:var(--dim);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
@@ -135,13 +132,14 @@ footer a{color:var(--bone);text-decoration:none;border-bottom:1px solid var(--li
 :focus-visible{outline:2px solid var(--pass);outline-offset:3px;border-radius:2px}
 
 @media (max-width:860px){
-  .hero-body{grid-template-columns:1fr}
   .cols{grid-template-columns:1fr;gap:32px}
   .renders{grid-template-columns:1fr;gap:18px}
+  .scrub-static .beats{margin-top:-80px}
 }
 @media (max-width:600px){
-  .hero{padding-top:88px}
   section{padding:64px 0}
+  .thesis{padding:72px 0 56px}
+  .panel-section{padding-top:72px}
 }
 </style>
 </head>
@@ -155,42 +153,83 @@ footer a{color:var(--bone);text-decoration:none;border-bottom:1px solid var(--li
   </div>
 </header>
 
-<main class="wrap">
+<div class="hero" id="heroStage">
+  <video id="heroVideo" autoplay muted loop playsinline preload="auto" poster="media/hero_poster.jpg">
+    <source src="media/hero_gyro.mp4" type="video/mp4">
+  </video>
+  <div class="scrim"></div>
+  <div class="content">
+    <div class="wrap">
+      <div class="eyebrow hero-load" id="heroEyebrow">video production engine</div>
+      <h1 class="hero-load" id="heroH1">Films that <span class="ink">compile.</span></h1>
+      <p class="sub hero-load" id="heroSub">A video production engine that treats a film as source code — scenes are YAML programs, rendering is a build, and every shot ships with machine-checked proof that it is correct.</p>
+    </div>
+  </div>
+  <div class="cue" aria-hidden="true"><span>scroll</span><span class="chev">↓</span></div>
+</div>
 
-  <div class="hero">
-    <div class="eyebrow">video production engine</div>
-    <h1>Films that <span class="lit">compile.</span></h1>
-    <div class="hero-body">
-      <p class="lede reveal">Greenlight is a video production engine that treats a film as source code.
-      Scenes are <strong>YAML programs</strong>, rendering is a <strong>build</strong>, and every shot ships with
-      <strong>machine-checked proof</strong> that it is correct — framing, occlusion, timing, and motion,
-      verified from the renderer's own ground truth. No human review loop. No vision-model guesswork.</p>
+<section class="thesis">
+  <div class="wrap">
+    <p class="reveal">Framing, occlusion, timing, and motion — verified from the renderer's own <strong>ground truth</strong>.
+    <span class="dim">No human review loop. No vision-model guesswork.</span></p>
+  </div>
+</section>
 
-      <div class="glass reveal build" role="img" aria-label="A YAML scene compiling into a verified shot">
-        <header><span>alley_chase.yaml</span><span>gl 0.1</span></header>
-        <pre><span class="k">shot</span><span class="v">: pursuit_cu</span>
-  <span class="k">camera</span><span class="v">: { framing: CU, move: track }</span>
-  <span class="k">assert</span><span class="v">:</span>
-    <span class="v">- visible(hero) &gt;= 0.9</span>
-    <span class="v">- foot_slip(hero) &lt;= 0.02</span>  <span class="c"># no skating</span></pre>
-        <div class="out">$ gl verify → <span class="ok">green</span> · proof: id·depth·amodal·telemetry</div>
+<div class="scrub-stage" id="scrubStage">
+  <div class="scrub-inner">
+    <div class="vig"></div>
+
+    <!-- default, JS-off / reduced-motion / mobile: static frame + stacked beats, no pin/scrub -->
+    <div class="scrub-media scrub-static" id="scrubStatic">
+      <img src="media/sentinel_seq/f055.jpg" alt="Greenlight-rendered scene, mid-sequence" width="1280" height="720">
+    </div>
+
+    <!-- JS-enabled desktop: canvas scrubbed by scroll -->
+    <div class="scrub-media scrub-animated" id="scrubAnimated" hidden>
+      <canvas id="seqCanvas" width="1280" height="720"></canvas>
+      <div class="beat" data-beat="0">
+        <span class="n">01 · declare</span>
+        <h3>A film is a git repo of text</h3>
+        <p>Shots declare framing, staging, motion, and assertions in a closed, schema-checked vocabulary.</p>
+        <span class="snip">assert: visible(hero) &gt;= 0.9</span>
+      </div>
+      <div class="beat" data-beat="1">
+        <span class="n">02 · render</span>
+        <h3>The program becomes a build</h3>
+        <p>The compiled scene renders through Greenlight's headless Blender bridge — the same pipeline behind every shot.</p>
+      </div>
+      <div class="beat" data-beat="2">
+        <span class="n">03 · verify</span>
+        <h3>Every render ships with proof</h3>
+        <p>Identity, depth, and occlusion passes plus per-frame motion telemetry — checked deterministically, fail-closed.</p>
+      </div>
+      <div class="verify-chip" id="verifyChip"><b>$ gl verify → green</b>proof: id·depth·amodal·telemetry</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="scrub-static beats" id="scrubStaticBeats">
+      <div class="beat">
+        <span class="n">01 · declare</span>
+        <h3>A film is a git repo of text</h3>
+        <p>Shots declare framing, staging, motion, and assertions in a closed, schema-checked vocabulary.</p>
+        <span class="snip">assert: visible(hero) &gt;= 0.9</span>
+      </div>
+      <div class="beat">
+        <span class="n">02 · render</span>
+        <h3>The program becomes a build</h3>
+        <p>The compiled scene renders through Greenlight's headless Blender bridge — the same pipeline behind every shot.</p>
+      </div>
+      <div class="beat">
+        <span class="n">03 · verify</span>
+        <h3>Every render ships with proof</h3>
+        <p>Identity, depth, and occlusion passes plus per-frame motion telemetry — checked deterministically, fail-closed. <b style="color:var(--pass)">$ gl verify → green</b></p>
       </div>
     </div>
   </div>
+</div>
 
-  <div class="strip-zone">
-    <div class="strip-label">every frame carries a verdict</div>
-    <div class="strip">
-      <div class="frame reveal" style="--d:0ms"><span class="shot">01 · establish</span><div class="assert">coverage(set) in WS range</div><span class="verdict">✓ pass 0.94</span></div>
-      <div class="frame reveal" style="--d:70ms"><span class="shot">02 · walk_in</span><div class="assert">foot_contact during stance</div><span class="verdict">✓ pass</span></div>
-      <div class="frame bad reveal" style="--d:140ms"><span class="shot">03 · reveal</span><div class="assert">visible(hero) ≥ 0.9</div><span class="verdict">✗ fail 0.43 — occluded by pillar</span><span class="hint">hint: orbit camera +45°</span></div>
-      <div class="repair-link reveal" style="--d:190ms" aria-hidden="true"><span class="arrow">↻</span>retry</div>
-      <div class="frame reveal" style="--d:230ms"><span class="shot">03 · reveal′</span><div class="assert">visible(hero) ≥ 0.9 · retry</div><span class="verdict">✓ pass 0.96</span></div>
-      <div class="frame reveal" style="--d:300ms"><span class="shot">04 · line_cu</span><div class="assert">declared_motion() &gt; ε</div><span class="verdict">✓ pass</span></div>
-      <div class="frame reveal" style="--d:370ms"><span class="shot">05 · exit</span><div class="assert">joint_limits valid</div><span class="verdict">✓ pass</span></div>
-    </div>
-  </div>
-
+<main class="wrap">
   <section class="hairline">
     <div class="eyebrow reveal">how it works</div>
     <h2 class="reveal">A compiler and CI system for moving pictures</h2>
@@ -208,26 +247,28 @@ footer a{color:var(--bone);text-decoration:none;border-bottom:1px solid var(--li
     </div>
   </section>
 
+  <section class="hairline panel-section">
+    <div class="eyebrow reveal">more output</div>
+    <h2 class="reveal">Another cut from the same pipeline</h2>
+    <div class="panel reveal" style="--d:60ms;margin-top:36px">
+      <video id="soldierVideo" muted loop playsinline preload="none" poster="media/soldier_poster.jpg">
+        <source data-src="media/soldier_loop.mp4" type="video/mp4">
+      </video>
+      <span class="cap">rendered by greenlight · gl 0.1</span>
+    </div>
+  </section>
+
   <section class="hairline">
     <div class="eyebrow reveal">output</div>
     <h2 class="reveal">Verified renders land here as the engine ships them</h2>
     <p class="reveal" style="--d:40ms;margin-top:14px;color:var(--dim);font-size:14.5px;max-width:52ch">Structured slots for engine output — poster frame, proof badge, and the verdict trail above, wired in the moment a render clears <span class="mono" style="font-family:var(--mono)">gl verify</span>.</p>
     <div class="renders">
       <!-- ENGINE_RENDER_SLOT_1 -->
-      <div class="slot reveal" style="--d:0ms">
-        <span class="corner">01</span>
-        <span class="tag"><span class="dot"></span>render pending</span>
-      </div>
+      <div class="slot reveal" style="--d:0ms"><span class="corner">01</span><span class="tag"><span class="dot"></span>render pending</span></div>
       <!-- ENGINE_RENDER_SLOT_2 -->
-      <div class="slot reveal" style="--d:90ms">
-        <span class="corner">02</span>
-        <span class="tag"><span class="dot"></span>render pending</span>
-      </div>
+      <div class="slot reveal" style="--d:90ms"><span class="corner">02</span><span class="tag"><span class="dot"></span>render pending</span></div>
       <!-- ENGINE_RENDER_SLOT_3 -->
-      <div class="slot reveal" style="--d:180ms">
-        <span class="corner">03</span>
-        <span class="tag"><span class="dot"></span>render pending</span>
-      </div>
+      <div class="slot reveal" style="--d:180ms"><span class="corner">03</span><span class="tag"><span class="dot"></span>render pending</span></div>
     </div>
   </section>
 
@@ -238,7 +279,7 @@ footer a{color:var(--bone);text-decoration:none;border-bottom:1px solid var(--li
       <b>engine</b> — compiler, renderer bridge (headless Blender), verifier, finisher: working end-to-end<br>
       <b>tests</b> — 380+ passing, evidence-integrity and motion gates included<br>
       <b>now rendering</b> — first agent-authored, engine-verified short films<br>
-      <b>model</b> — open-core: permissive engine, paid cloud rendering &amp; asset packs
+      <b>access</b> — free tier at launch; pro &amp; studio tiers to follow
     </p>
   </section>
 
@@ -248,27 +289,110 @@ footer a{color:var(--bone);text-decoration:none;border-bottom:1px solid var(--li
   </footer>
 </main>
 
+<script src="vendor/gsap.min.js"></script>
+<script src="vendor/ScrollTrigger.min.js"></script>
 <script>
 (function(){
+  /* nav chrome */
   var nav=document.getElementById('siteNav');
   var setScrolled=function(){nav.classList.toggle('scrolled',window.scrollY>8);};
-  setScrolled();
-  addEventListener('scroll',setScrolled,{passive:true});
+  setScrolled(); addEventListener('scroll',setScrolled,{passive:true});
 
+  /* generic reveals */
   var els=document.querySelectorAll('.reveal');
-  if(!('IntersectionObserver' in window)){
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){entry.target.classList.add('in');io.unobserve(entry.target);}
+      });
+    },{threshold:.2,rootMargin:'0px 0px -8% 0px'});
+    els.forEach(function(el){io.observe(el);});
+  } else {
     els.forEach(function(el){el.classList.add('in');});
-    return;
   }
-  var io=new IntersectionObserver(function(entries){
-    entries.forEach(function(entry){
-      if(entry.isIntersecting){
-        entry.target.classList.add('in');
-        io.unobserve(entry.target);
+
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var hasGsap = !!(window.gsap && window.ScrollTrigger);
+
+  /* hero load sequence: one orchestrated moment */
+  var heroEls=[document.getElementById('heroEyebrow'),document.getElementById('heroH1'),document.getElementById('heroSub')];
+  if(hasGsap){
+    gsap.timeline({delay:.15}).to(heroEls,{opacity:1,y:0,duration:.9,ease:'power3.out',stagger:.12});
+  } else {
+    heroEls.forEach(function(el){el.style.opacity=1;el.style.transform='none';});
+  }
+
+  /* soldier panel: don't fetch video until it's about to be seen; play only in view */
+  var sv=document.getElementById('soldierVideo');
+  if(sv){
+    var src=sv.querySelector('source');
+    var armed=false;
+    var svio=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          if(!armed && src.dataset.src){ src.src=src.dataset.src; sv.load(); armed=true; }
+          sv.play().catch(function(){});
+        } else {
+          sv.pause();
+        }
+      });
+    },{threshold:.35});
+    svio.observe(sv);
+  }
+
+  /* scrub centerpiece: desktop + motion-ok + gsap only, else the static markup already showing stays as-is */
+  var wide = matchMedia('(min-width:760px)').matches;
+  if(!hasGsap || reduced || !wide) return;
+
+  var stage=document.getElementById('scrubStage');
+  var stageIo=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){ initScrub(); stageIo.disconnect(); } });
+  },{rootMargin:'700px 0px'});
+  stageIo.observe(stage);
+
+  function initScrub(){
+    var canvas=document.getElementById('seqCanvas');
+    var ctx=canvas && canvas.getContext && canvas.getContext('2d');
+    if(!ctx) return;
+
+    var FRAME_COUNT=110, frames=[];
+    function pad(n){return ('00'+n).slice(-3);}
+    for(var i=1;i<=FRAME_COUNT;i++){
+      var img=new Image();
+      img.src='media/sentinel_seq/f'+pad(i)+'.jpg';
+      frames.push(img);
+    }
+    function draw(i){ var im=frames[i]; if(im && im.complete && im.naturalWidth) ctx.drawImage(im,0,0,canvas.width,canvas.height); }
+    frames[0].onload=function(){ draw(0); };
+
+    document.getElementById('scrubStatic').hidden=true;
+    document.getElementById('scrubStaticBeats').hidden=true;
+    var animated=document.getElementById('scrubAnimated');
+    animated.hidden=false;
+
+    var beats=animated.querySelectorAll('.beat');
+    var chip=document.getElementById('verifyChip');
+    gsap.registerPlugin(ScrollTrigger);
+
+    ScrollTrigger.create({
+      trigger:stage,
+      start:'top top',
+      end:'+=260%',
+      pin:true,
+      scrub:.6,
+      onUpdate:function(self){
+        var idx=Math.min(FRAME_COUNT-1,Math.round(self.progress*(FRAME_COUNT-1)));
+        draw(idx);
+        var p=self.progress;
+        beats.forEach(function(b,bi){
+          var lo=bi/3, hi=(bi+1)/3, local=(p-lo)/(hi-lo);
+          var vis=local>-0.2 && local<1.2;
+          gsap.to(b,{opacity:vis?1:0,y:vis?0:20,duration:.35,overwrite:true});
+        });
+        gsap.to(chip,{opacity:p>0.72?1:0,scale:p>0.72?1:.85,duration:.4,overwrite:true});
       }
     });
-  },{threshold:.2,rootMargin:'0px 0px -8% 0px'});
-  els.forEach(function(el){io.observe(el);});
+  }
 })();
 </script>
 </body>
