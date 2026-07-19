@@ -28,11 +28,11 @@ img,video{max-width:100%;display:block}
 
 /* generic scroll reveal (non-hero content) — hidden-until-revealed ONLY once JS proves it can reveal them */
 html.js .reveal{opacity:0;transform:translateY(24px);transition:opacity .9s var(--ease),transform .9s var(--ease);transition-delay:var(--d,0ms)}
-.reveal.in{opacity:1;transform:none}
+html.js .reveal.in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){html.js .reveal{transform:none;transition:opacity .5s ease;transition-delay:0ms}}
 
 /* nav */
-header{position:sticky;top:0;z-index:60;border-bottom:1px solid transparent;transition:background .4s ease,border-color .4s ease,backdrop-filter .4s ease}
+header{position:fixed;top:0;left:0;right:0;z-index:60;border-bottom:1px solid transparent;transition:background .4s ease,border-color .4s ease,backdrop-filter .4s ease}
 header.scrolled{background:color-mix(in srgb,var(--set) 74%,transparent);backdrop-filter:blur(18px) saturate(160%);border-color:var(--line)}
 nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0}
 .mark{font:600 15px var(--mono);letter-spacing:.02em}
@@ -70,7 +70,7 @@ html.js .hero-load{opacity:0;transform:translateY(16px)}
 .scrub-stage{position:relative;border-top:1px solid var(--line)}
 .scrub-inner{position:relative;height:100svh;min-height:520px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#000}
 .scrub-media{position:relative;width:100%;height:100%}
-.scrub-media img,.scrub-media canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.scrub-media img,.scrub-media video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .scrub-stage .vig{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.5) 0%,transparent 20%,transparent 70%,rgba(0,0,0,.75) 100%);pointer-events:none;z-index:1}
 .scrub-static{padding:0}
 .scrub-static .beats{position:relative;z-index:2}
@@ -118,12 +118,27 @@ h2{font:700 clamp(28px,3.8vw,40px)/1.1 var(--disp);letter-spacing:-.02em;max-wid
   background:repeating-linear-gradient(115deg,rgba(255,255,255,.025) 0 2px,transparent 2px 26px),
     radial-gradient(circle at 30% 20%,#2a2622,transparent 60%),linear-gradient(155deg,#221f1c,#161311 75%);
   overflow:hidden;display:flex;align-items:flex-end;padding:14px}
-.slot::after{content:"";position:absolute;inset:0;border:1px solid rgba(255,255,255,.05);border-radius:12px;pointer-events:none}
+.slot::before{content:"";position:absolute;inset:0;border:1px solid rgba(255,255,255,.05);border-radius:12px;pointer-events:none}
 .slot .tag{font:600 11px var(--mono);color:var(--dim);display:flex;align-items:center;gap:7px}
 .slot .dot{width:6px;height:6px;border-radius:50%;background:var(--dim)}
 @media (prefers-reduced-motion:no-preference){.slot .dot{animation:pendingPulse 3.6s ease-in-out infinite}}
 @keyframes pendingPulse{0%,100%{opacity:.45}50%{opacity:1}}
 .slot .corner{position:absolute;top:12px;left:14px;font:400 10px var(--mono);color:#635c54;letter-spacing:.06em}
+
+/* provenance stamp — every surface a render touches carries the mark; .slot inherits it automatically for future renders, no markup needed */
+.hero::after,.scrub-inner::after,.panel::after,.slot::after{
+  content:"Made with Greenlight";position:absolute;right:14px;bottom:14px;z-index:4;
+  font:400 10.5px var(--mono);color:rgba(232,226,217,.68);letter-spacing:.02em;
+  padding:5px 12px 5px 17px;border-radius:999px;
+  background-color:rgba(21,19,18,.42);
+  background-image:radial-gradient(circle 2.5px at 8px center,var(--pass) 2.5px,transparent 2.6px);
+  border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(8px) saturate(140%);-webkit-backdrop-filter:blur(8px) saturate(140%);
+  pointer-events:none;
+}
+@media (max-width:600px){
+  .hero::after,.scrub-inner::after,.panel::after,.slot::after{font-size:9.5px;padding:4px 10px 4px 15px;right:10px;bottom:10px}
+}
 
 .status{font:400 13px var(--mono);color:var(--dim);margin-top:30px;line-height:2.1}
 .status b{color:var(--bone);font-weight:600}
@@ -179,14 +194,16 @@ footer a{color:var(--bone);text-decoration:none;border-bottom:1px solid var(--li
   <div class="scrub-inner">
     <div class="vig"></div>
 
-    <!-- default, JS-off / reduced-motion / mobile: static frame + stacked beats, no pin/scrub -->
+    <!-- default, JS-off / reduced-motion / mobile: static poster + stacked beats, no pin/scrub -->
     <div class="scrub-media scrub-static" id="scrubStatic">
-      <img src="media/sentinel_seq/f055.jpg" alt="Greenlight-rendered scene, mid-sequence" width="1280" height="720">
+      <img src="media/sentinel_poster.jpg" alt="Greenlight-rendered scene" width="1280" height="720">
     </div>
 
-    <!-- JS-enabled desktop: canvas scrubbed by scroll -->
+    <!-- JS-enabled desktop: sentinel footage plays naturally on loop, scroll drives only the text beats -->
     <div class="scrub-media scrub-animated" id="scrubAnimated" hidden>
-      <canvas id="seqCanvas" width="1280" height="720"></canvas>
+      <video id="sentinelVideo" muted loop playsinline preload="none" poster="media/sentinel_poster.jpg">
+        <source data-src="media/sentinel_loop.mp4" type="video/mp4">
+      </video>
       <div class="beat" data-beat="0">
         <span class="n">01 · declare</span>
         <h3>A film is a git repo of text</h3>
@@ -351,24 +368,22 @@ footer a{color:var(--bone);text-decoration:none;border-bottom:1px solid var(--li
   stageIo.observe(stage);
 
   function initScrub(){
-    var canvas=document.getElementById('seqCanvas');
-    var ctx=canvas && canvas.getContext && canvas.getContext('2d');
-    if(!ctx) return;
-
-    var FRAME_COUNT=110, frames=[];
-    function pad(n){return ('00'+n).slice(-3);}
-    for(var i=1;i<=FRAME_COUNT;i++){
-      var img=new Image();
-      img.src='media/sentinel_seq/f'+pad(i)+'.jpg';
-      frames.push(img);
-    }
-    function draw(i){ var im=frames[i]; if(im && im.complete && im.naturalWidth) ctx.drawImage(im,0,0,canvas.width,canvas.height); }
-    frames[0].onload=function(){ draw(0); };
+    var vid=document.getElementById('sentinelVideo');
+    if(!vid) return;
 
     document.getElementById('scrubStatic').hidden=true;
     document.getElementById('scrubStaticBeats').hidden=true;
     var animated=document.getElementById('scrubAnimated');
     animated.hidden=false;
+
+    /* footage plays at its own pace, muted + looping — scroll never touches its timeline */
+    var vsrc=vid.querySelector('source');
+    if(vsrc.dataset.src){ vsrc.src=vsrc.dataset.src; vid.load(); }
+    vid.play().catch(function(){});
+    var vidIo=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if(e.isIntersecting){ vid.play().catch(function(){}); } else { vid.pause(); } });
+    },{threshold:.1});
+    vidIo.observe(stage);
 
     var beats=animated.querySelectorAll('.beat');
     var chip=document.getElementById('verifyChip');
@@ -381,8 +396,6 @@ footer a{color:var(--bone);text-decoration:none;border-bottom:1px solid var(--li
       pin:true,
       scrub:.6,
       onUpdate:function(self){
-        var idx=Math.min(FRAME_COUNT-1,Math.round(self.progress*(FRAME_COUNT-1)));
-        draw(idx);
         var p=self.progress;
         beats.forEach(function(b,bi){
           var lo=bi/3, hi=(bi+1)/3, local=(p-lo)/(hi-lo);
