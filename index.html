@@ -20,7 +20,6 @@
   --ease:cubic-bezier(.16,1,.3,1);
 }
 *{margin:0;box-sizing:border-box}
-html{scroll-behavior:smooth}
 body{background:var(--set);color:var(--bone);font:16px/1.65 system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
 a{color:inherit}
 .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
@@ -328,8 +327,20 @@ footer a{color:var(--bone);text-decoration:none;border-bottom:1px solid var(--li
 
 <script src="vendor/gsap.min.js"></script>
 <script src="vendor/ScrollTrigger.min.js"></script>
+<script src="vendor/lenis.min.js"></script>
 <script>
 (function(){
+  var reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* smooth scroll: inertial feel wired into ScrollTrigger's own update loop.
+     Skipped entirely under reduced-motion — native scroll, everything else still works. */
+  if(!reducedMotion && window.Lenis && window.gsap && window.ScrollTrigger){
+    var lenis=new Lenis({duration:1.1,smoothWheel:true});
+    lenis.on('scroll',ScrollTrigger.update);
+    gsap.ticker.add(function(time){ lenis.raf(time*1000); });
+    gsap.ticker.lagSmoothing(0);
+  }
+
   /* nav chrome */
   var nav=document.getElementById('siteNav');
   var setScrolled=function(){nav.classList.toggle('scrolled',window.scrollY>8);};
@@ -348,7 +359,6 @@ footer a{color:var(--bone);text-decoration:none;border-bottom:1px solid var(--li
     els.forEach(function(el){el.classList.add('in');});
   }
 
-  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var hasGsap = !!(window.gsap && window.ScrollTrigger);
 
   /* hero load sequence: one orchestrated moment */
@@ -379,7 +389,7 @@ footer a{color:var(--bone);text-decoration:none;border-bottom:1px solid var(--li
 
   /* scrub centerpiece: desktop + motion-ok + gsap only, else the static markup already showing stays as-is */
   var wide = matchMedia('(min-width:760px)').matches;
-  if(!hasGsap || reduced || !wide) return;
+  if(!hasGsap || reducedMotion || !wide) return;
 
   var stage=document.getElementById('scrubStage');
   var stageIo=new IntersectionObserver(function(entries){
