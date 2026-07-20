@@ -153,6 +153,8 @@ h2{font:700 clamp(28px,3.8vw,40px)/1.1 var(--disp);letter-spacing:-.02em;max-wid
 }
 @media (max-width:600px){
   .hero::after,.scrub-inner::after,.panel::after,.slot::after{font-size:9.5px;padding:4px 10px 4px 15px;right:10px;bottom:10px}
+  /* panel caption collides with the provenance badge when both are bottom-anchored on a narrow panel — move it up top */
+  .panel .cap{left:14px;bottom:auto;top:14px}
 }
 
 .status{font:400 13px var(--mono);color:var(--dim);margin-top:30px;line-height:2.1}
